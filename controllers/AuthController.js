@@ -20,4 +20,6 @@ router.post('/logout', AuthMiddleware.validateToken, async (req, res) => {
     res.status(response.code).json(response.message);
 });
 
+
+
 export default router;
