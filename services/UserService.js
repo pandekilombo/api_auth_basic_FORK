@@ -10,8 +10,11 @@ const sequelize = new Sequelize({
 });
 
 
+//nota: si ayude gente a hacer esto, pero lo mio lo comente por que entendi mi propio codigo,
+//despues no me pida hacer esto desde 0 por que me falta experiencia con js :S
 
-// Definir el modelo de usuario
+
+// Definicion de los usuarios ingresados //no esta en uso pero no quise eliminarlo
 const User = sequelize.define('User', {
     id: {
         type: Sequelize.INTEGER,
@@ -49,25 +52,33 @@ const User = sequelize.define('User', {
     }
 });
 
-
+//Buscador de usuarios con filtros segun:
+//name: string - > busca similares
+//status: true o false
+//fechaInicioAntes - > es decir, usuarios con fecha de creacion anterior a la indicada
+//fechaInicioDespues - > es decir, usuarios con fecha de creacion posterior a la indicada
 const findUsers = async (queryParams) => {
     let whereClause = {
-        status: true, // Por defecto, solo usuarios activos
+        status: true, // Por defecto, solo usuarios activos por si acaso
     };
     
     let fechaInicioAntesISO, fechaInicioDespuesISO; // Variables para almacenar las fechas ISO
 
     // Aplicar filtros según los query parameters
     if (queryParams.status !== undefined) {
+
+        //filtra segun lo ingresado en status como query
         whereClause.status = queryParams.status === 'true' ? true : false;
     }
 
     if (queryParams.name) {
+        //filtra si se ingreso un query de name
         whereClause.name = {
             [Op.like]: `%${queryParams.name}%`
         };
     }
 
+    //Arregla el formato de la fecha en caso de no usar guiones para luego filtrar
     if (queryParams.fechaInicioAntes && typeof queryParams.fechaInicioAntes === 'string') {
         fechaInicioAntesISO = queryParams.fechaInicioAntes.replace(/\//g, '-');
         whereClause.createdAt = {
@@ -75,6 +86,7 @@ const findUsers = async (queryParams) => {
         };
     }
 
+    //Lo mismo que la anterior pero para fechainiciodespues para luego filtrar
     if (queryParams.fechaInicioDespues && typeof queryParams.fechaInicioDespues === 'string') {
         fechaInicioDespuesISO = queryParams.fechaInicioDespues.replace(/\//g, '-');
         whereClause.createdAt = {
@@ -82,22 +94,30 @@ const findUsers = async (queryParams) => {
         };
     }
 
+    //En caso de no haber usado ningun filtro whereclause indica buscar a todos
     const users = await db.User.findAll({
         where: whereClause
     });
 
+    //retorna los usuarios encontrados
     return {
         code: 200,
         message: users
     };
 }
 
+//Crear de golpe varios usuarios enlistado
 const bulkCreateUsers = async (usersList) => {
+    //Contador de usuarios creados
     let successCount = 0;
+
+    //Contador errores al crear usuarios
     let errorCount = 0;
+
+    //Lista con los usuarios que no se pudieron agregar
     let errorUsers = [];
 
-    // Verificar que userList sea un array
+    // Verificar que la lista a registrar sea un array
     if (!Array.isArray(usersList)) {
         throw new Error('La lista de usuarios no es un array válido.');
     }
@@ -105,14 +125,28 @@ const bulkCreateUsers = async (usersList) => {
     // Iterar sobre la lista de usuarios para validar y crear cada uno
     for (let userData of usersList) {
         try {
-            // Validar el usuario antes de intentar crearlo (ejemplo de validación básica)
+            // Validar el usuario antes de intentar crearlo 
             if (!userData.name || !userData.email || !userData.password) {
                 throw new Error('El usuario debe tener nombre, email y contraseña.');
             }
+            
+            // Validar que la cofirmacion de contraseña sea valida
             if (userData.password != userData.password_second){
                 throw new Error('Las contraseñas no coinciden');
             }
-            // Ejemplo: Crear el usuario en la base de datos (reemplaza con tu lógica real)
+
+            //Verificar que existe ya un usuario con ese correo 
+            const user = await db.User.findOne({
+                where: {
+                    email: userData.email
+                }
+            });
+            if (user) {
+                throw new Error('Ya hay un usuario con ese correo');
+
+            }
+
+            //Crear usuario
             const newUser = await db.User.create({
                 name: userData.name,
                 password: userData.password,
@@ -121,13 +155,17 @@ const bulkCreateUsers = async (usersList) => {
                 cellphone: userData.cellphone
             });
 
-            // Contar como éxito si se crea el usuario sin errores
+            // Contar como exito si se crea el usuario sin errores
             successCount++;
         } catch (error) {
-            //contador de errores
+
+            //En caso de entrar a error se suma al contdor de errores 
             errorCount++;
-            errorUsers.push(userData); // Agregar usuario con error a la lista de errores
+
+            // Agregar usuario con error a la lista de errores
+            errorUsers.push(userData); 
             
+            //Imprimir en consola que el usuario actual no pudo ser agregado
             console.error(`Error al crear usuario ${userData.name}: ${error.message}`);
         }
     }
@@ -195,7 +233,7 @@ const getUserById = async (id) => {
 
 
 
-
+// Busca a todos los usuarios
 const getAllUsers = async () => {
     try {
         const users = await db.User.findAll({

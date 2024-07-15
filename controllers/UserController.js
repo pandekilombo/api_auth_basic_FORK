@@ -11,6 +11,8 @@ router.post('/create', async (req, res) => {
     res.status(response.code).json(response.message);
 });
 
+
+//Este es el que sirve para buscar a todos
 router.get(
     '/getAllUsers',
     async (req, res) => {
@@ -18,7 +20,12 @@ router.get(
         res.status(response.code).json(response.message);
     });
 
-
+//Este es el que sirve para buscar con filtros
+//Lista de parametros que se pueden usar como query:
+//name: string - > busca similares
+//status: true o false
+//fechaInicioAntes - > es decir, usuarios con fecha de creacion anterior a la indicada
+//fechaInicioDespues - > es decir, usuarios con fecha de creacion posterior a la indicada
 router.get(
     '/findUsers',
     async (req, res) => {
